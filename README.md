@@ -11,8 +11,7 @@ from the table that have at least 1 NULL value
   - Bonus 4: Option 8 - Threshold and CSV output file functionality.
 
 ## Instructions to run the program:
-- Run the program with this command: python3 main.py
-- Look at the data.csv results
+- Run the program with this command: *python3 app.py* and follow directions on terminal window.
 
 ## Source Files:
 - app.py
