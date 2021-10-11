@@ -1,12 +1,21 @@
 # module defines operations to use with sqlite3 database
 import sqlite3
+from sqlite3.dbapi2 import OperationalError
 
 
 class db_operations():
     def __init__(self,conn_path): # constructor with connection path to db
-        self.connection = sqlite3.connect(conn_path)
-        self.cursor = self.connection.cursor()
-        print("Connection made..")
+        self.isConnected = False
+        while self.isConnected == False:
+            try:
+                self.connection = sqlite3.connect(conn_path)
+                self.cursor = self.connection.cursor()
+                print("Connection made..")
+                self.isConnected = True
+            except OperationalError as e:
+                print(f"Error: Unable to connect to {conn_path}. \nPlease re-renter the DB path, include the db file in the path. ")
+                conn_path = input("Path: ")
+                continue
         self.table_exists(table_name="songs", create_table=True)
     
     # Check if the songs table is made or not

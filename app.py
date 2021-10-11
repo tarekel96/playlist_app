@@ -7,8 +7,7 @@ from helper import helper
 from db_operations import db_operations
 
 data = helper.data_cleaner("songs.csv")
-
-DB_PATH = "/Users/Tarek/Documents/CPSC_Courses/CPSC_408/chinook.db"
+DB_PATH = input("Enter the file path to chinook.db (include /chinook.db in the path).\nFile path: ")
 # modify to your chinook db connection
 db_ops = db_operations(DB_PATH)
 
