@@ -42,91 +42,6 @@ def pre_process():
 def pre_process_new_songs():    
     file_path = helper.get_file_path()
     insert_new_songs(file_path)
-    
-def insert_new_songs(file_path = './songs.csv'):
-    new_data = helper.data_cleaner(file_path)
-    STARTING_AMT = len(new_data)
-    # BONUS 1
-    # Before inserting each new song, the application shouldcheck if the song with that ID already exists or not. 
-    # If it does, then you don’t need to insert that song in the table. 
-    query = '''
-    SELECT songID
-    FROM songs;
-    '''
-    # Get list of song IDs
-    SONG_IDs = db_ops.name_placeholder_query(query=query, dictionary={})
-    # Get list of new song IDs 
-    new_song_ids = [i[0] for i in new_data]
-    # Check if each new song ID is valid and remove if not.
-    for new_id in new_song_ids:
-        if new_id in SONG_IDs:
-            new_data = [record for record in new_data if record[0] != new_id]
-    # If there are no new songs left after ID checks, then let user know
-    if len(new_data) == 0:
-        print("Results: All of the new records have invalid IDs. No new songs were added.")
-        return
-    # Inform the user of how many songs were added and how many were not
-    else:
-        print(f"Results: {len(new_data)} song(s) were added and {STARTING_AMT - len(new_data)} song(s) were rejected because of invalid IDs.")
-    
-    # Insert New Records
-    attribute_count = len(new_data[0])
-    placeholders = ("?,"*attribute_count)[:-1]
-    query = "INSERT INTO songs VALUES("+placeholders+")"
-    db_ops.bulk_insert(query, new_data)
-
-# Option 4. Update Song by Name
-def update_song_by_name():
-    song_name = get_valid_song_name()
-    results_list = get_song_record(song_name=song_name)
-    query = '''
-        SELECT *
-        FROM songs
-        WHERE Name=:song_name;
-        '''
-    dictionary = {"song_name": song_name}
-    names = db_ops.get_record_col_names(query, dictionary)
-    SONG_ID = results_list[0]
-    attr_list = ["Name", "Artist", "Album", "releaseDate", "Explicit" ]
-    data_types = [str, str, str, date, bool]
-    for index, name in enumerate(names):
-        if name not in attr_list:
-            names.remove(name)
-            results_list.pop(index)
-    print("Pick a choice of which attriibute to update: ")
-    helper.pretty_print_attr(attr_list=attr_list, results_list=results_list)
-    res = helper.get_choice([i for i in range(len(attr_list))])
-    res_col_name = names[res]
-    res_attr_value = results_list[res]
-    res_data_type = data_types[res]
-    update_value = helper.get_update_value(msg=f"Enter the new value for {res_col_name} : ", \
-        original_value=res_attr_value, data_type=res_data_type)
-    update_song(SONG_ID, res_col_name, update_value)
-
-# Option 5. Delete Song by Name
-def delete_song_by_name():
-    song_name = get_valid_song_name()
-    results_list = get_song_record(song_name=song_name)
-    SONG_ID = results_list[0]
-    print(f"Deleting {song_name}...")
-    n_delete = delete_song(SONG_ID)
-    if n_delete == 1:
-         print(f"Successfully deleted {song_name}")
-    elif n_delete == -1:
-        print(f"Error: Did not delete {song_name}")  
-    
-
-def start_screen():
-    print("Welcome to your playlist!")
-
-
-# show user options
-def options():
-    print("Select from the following menu options:\n1 Find songs by artist\n" \
-    "2 Find songs by genre\n3 Find songs by feature\n4 Update song by name\n" \
-    "5 Delete song by name\n6 Remove all records that contain an empty attribute.\n"\
-    "7 Bulk delete records.\n0 Exit")
-    return helper.get_choice([i for i in range(0, 8)])
 
 # option 1, search table to show songs by artist
 def search_by_artist():
@@ -213,6 +128,156 @@ def search_by_feature():
         dictionary['lim'] = num
     helper.pretty_print(db_ops.name_placeholder_query(query,dictionary))
 
+# Option 4. Update Song by Name
+def update_song_by_name():
+    song_name = get_valid_song_name()
+    results_list = get_song_record(song_name=song_name)
+    query = '''
+        SELECT *
+        FROM songs
+        WHERE Name=:song_name;
+        '''
+    dictionary = {"song_name": song_name}
+    names = db_ops.get_record_col_names(query, dictionary)
+    SONG_ID = results_list[0]
+    attr_list = ["Name", "Artist", "Album", "releaseDate", "Explicit" ]
+    data_types = [str, str, str, date, bool]
+    for index, name in enumerate(names):
+        if name not in attr_list:
+            names.remove(name)
+            results_list.pop(index)
+    print("Pick a choice of which attriibute to update: ")
+    helper.pretty_print_attr(attr_list=attr_list, results_list=results_list)
+    res = helper.get_choice([i for i in range(len(attr_list))])
+    res_col_name = names[res]
+    res_attr_value = results_list[res]
+    res_data_type = data_types[res]
+    update_value = helper.get_update_value(msg=f"Enter the new value for {res_col_name} : ", \
+        original_value=res_attr_value, data_type=res_data_type)
+    update_song(SONG_ID, res_col_name, update_value)
+
+# Option 5. Delete Song by Name
+def delete_song_by_name():
+    song_name = get_valid_song_name()
+    results_list = get_song_record(song_name=song_name)
+    SONG_ID = results_list[0]
+    print(f"Deleting {song_name}...")
+    n_delete = delete_song(SONG_ID)
+    if n_delete == 1:
+         print(f"Successfully deleted {song_name}")
+    elif n_delete == -1:
+        print(f"Error: Did not delete {song_name}")  
+
+# BONUS 3: remove all records from the table that have atleast 1 NULL value.
+# Option 6. Remove Records with NULL values.
+def delete_incomplete_records():
+    query = '''
+    SELECT *
+    FROM songs;
+    '''
+    col_names = db_ops.get_record_col_names(query, {})
+    print(f"Col Names: {col_names}")
+    for col in col_names:
+        query=f'''
+        DELETE FROM
+        songs WHERE {col} IS NULL;
+        '''
+        db_ops.update_records(query, {})
+    print("Successfully deleted NULL records")
+
+# BONUS 2: user can bulk update records based on album, artist, or genre name
+# Option 7. Change Records in Bulk by a condition.
+def modify_in_bulk():
+    attr_list = ["Album", "Artist", "Genre"]
+    for index, attr in enumerate(attr_list):
+        print(f"{index} {attr}")
+    res = helper.get_choice([0,1,2])
+    chosen_attr = attr_list[res]
+    query = f'''
+    SELECT DISTINCT {chosen_attr}
+    FROM songs;
+    '''
+    print(f"The current values for {chosen_attr} are: ")
+    unique_values = db_ops.single_attribute(query)
+    helper.pretty_print(unique_values)
+    original_value = None
+    if res == 0:
+        original_value = get_valid_album_name()
+    elif res == 1:
+        original_value = get_valid_artist_name()
+    elif res == 2:
+        original_value = get_valid_genre_name()
+    new_value = helper.get_update_value(msg=f"Input a new value for {chosen_attr}, original value is {original_value}\nNew Value: ",\
+        data_type=str, original_value=original_value)
+    query = f'''
+    UPDATE songs
+    SET {chosen_attr} = :new_value
+    WHERE {chosen_attr} = :original_value;
+    '''
+    dictionary = {
+        "original_value": original_value,
+        "new_value": new_value
+        }
+    db_ops.update_records(query, dictionary)
+
+# Option 8. View songs by threshold criteria for either Energy, Danceability, Acousticness, Liveness, or Loudness.
+def view_by_threshold():
+    # Options for user
+    options = ["Energy", "Danceability", "Acousticness", "Liveness", "Loudness"]
+    option_indexes = [i for i in range(len(options))]  
+    user_res = -1
+    # Present Options
+    print("Choose the threshold category:")
+    for index, option in enumerate(options):
+        print(f"{index} {option}")
+    # Get user response
+    user_res = helper.get_choice(option_indexes)
+    selected_attr = options[user_res]
+    # Get threshold value for threshold category
+    threshold = helper.get_float(unsigned=True, bounded=True, bounds=(0,1))
+    print(f"Enter 1 to make {threshold} a minimum\nEnter 2 to make {threshold} a maximum")
+    condition = helper.get_choice([1,2])
+    query = None
+    if condition == 1:
+        query = f'''
+        SELECT *
+        FROM songs
+        WHERE {selected_attr} > :threshold
+        '''
+    elif condition == 2:
+        query = f'''
+        SELECT *
+        FROM songs
+        WHERE {selected_attr} < :threshold
+        '''
+    dictionary = {"threshold": threshold}
+    results = db_ops.get_records_options(query, dictionary)
+
+    if len(results) == 0:
+        print(f"No records were found that meet the {threshold} threshold criteria.")
+        return
+    else:
+        helper.pretty_print(results)
+        filename = "./" + selected_attr + ".csv"
+        print(f"Writing song results to {filename}...")
+        helper.write_songs_to_file(filename, results)
+        print(f"Finished writing songs to {filename}")
+
+
+    
+
+def start_screen():
+    print("Welcome to your playlist!")
+
+
+# show user options
+def options():
+    print("Select from the following menu options:\n1 Find songs by artist\n" \
+    "2 Find songs by genre\n3 Find songs by feature\n4 Update song by name\n" \
+    "5 Delete song by name\n6 Remove all records that contain an empty attribute.\n"\
+    "7 Bulk change records.\n8 View records by attribute threshold.\n0 Exit")
+    return helper.get_choice([i for i in range(0, 9)])
+
 def get_song_record(song_name):
         query = '''
         SELECT *
@@ -221,6 +286,38 @@ def get_song_record(song_name):
         '''
         dictionary = {"song_name": song_name}
         return list(db_ops.single_record_options(query, dictionary))
+
+def insert_new_songs(file_path = './songs.csv'):
+    new_data = helper.data_cleaner(file_path)
+    STARTING_AMT = len(new_data)
+    # BONUS 1
+    # Before inserting each new song, the application shouldcheck if the song with that ID already exists or not. 
+    # If it does, then you don’t need to insert that song in the table. 
+    query = '''
+    SELECT songID
+    FROM songs;
+    '''
+    # Get list of song IDs
+    SONG_IDs = db_ops.name_placeholder_query(query=query, dictionary={})
+    # Get list of new song IDs 
+    new_song_ids = [i[0] for i in new_data]
+    # Check if each new song ID is valid and remove if not.
+    for new_id in new_song_ids:
+        if new_id in SONG_IDs:
+            new_data = [record for record in new_data if record[0] != new_id]
+    # If there are no new songs left after ID checks, then let user know
+    if len(new_data) == 0:
+        print("Results: All of the new records have invalid IDs. No new songs were added.")
+        return
+    # Inform the user of how many songs were added and how many were not
+    else:
+        print(f"Results: {len(new_data)} song(s) were added and {STARTING_AMT - len(new_data)} song(s) were rejected because of invalid IDs.")
+    
+    # Insert New Records
+    attribute_count = len(new_data[0])
+    placeholders = ("?,"*attribute_count)[:-1]
+    query = "INSERT INTO songs VALUES("+placeholders+")"
+    db_ops.bulk_insert(query, new_data)
 
 def update_song(song_id, col_name, attr_value):
     query = f'''
@@ -269,7 +366,7 @@ def get_valid_album_name():
     FROM songs;
     '''
     ALBUM_NAMES = db_ops.name_placeholder_query(query=query, dictionary={})
-    album_name = input("Enter album name: ")
+    album_name = input("Enter album name (that would like to change): ")
     isValid = album_name in ALBUM_NAMES
     while isValid == False:
         print(f"Error: album name - {album_name} - does not exist. Please try again.")
@@ -286,7 +383,7 @@ def get_valid_genre_name():
     FROM songs;
     '''
     GENRE_NAMES = db_ops.name_placeholder_query(query=query, dictionary={})
-    genre_name = input("Enter genre name: ")
+    genre_name = input("Enter genre name (that would like to change): ")
     isValid = genre_name in GENRE_NAMES
     while isValid == False:
         print(f"Error: genre name - {genre_name} - does not exist. Please try again.")
@@ -303,7 +400,7 @@ def get_valid_song_name():
     FROM songs;
     '''
     SONG_NAMES = db_ops.name_placeholder_query(query=query, dictionary={})
-    song_name = input("Enter song name: ")
+    song_name = input("Enter song name (that would like to change): ")
     isValid = song_name in SONG_NAMES
     while isValid == False:
         print(f"Error: song name - {song_name} - does not exist. Please try again.")
@@ -313,44 +410,6 @@ def get_valid_song_name():
             continue
         isValid = song_name in SONG_NAMES
     return song_name
-
-# BONUS 3: remove all records from the table that have atleast 1 NULL value.
-# Option 6. Remove Records with NULL values.
-def delete_incomplete_records():
-    query = '''
-    SELECT *
-    FROM songs;
-    '''
-    col_names = db_ops.get_record_col_names(query, {})
-    print(f"Col Names: {col_names}")
-    for col in col_names:
-        query=f'''
-        DELETE FROM
-        songs WHERE {col} IS NULL;
-        '''
-        db_ops.update_records(query, {})
-    print("Successfully deleted NULL records")
-
-# Option 7. Delete Records in Bulk by a condition.
-def delete_by_bulk():
-    attr_list = ["Album", "Artist", "Genre"]
-    for index, attr in enumerate(attr_list):
-        print(f"({index}) ***** {attr}")
-    res = helper.get_choice([0,1,2])
-    chosen_attr = attr_list[res]
-    new_value = None
-    if res == 0:
-        new_value = get_valid_album_name()
-    elif res == 1:
-        new_value = get_valid_artist_name()
-    elif res == 2:
-        new_value = get_valid_genre_name()
-    query = f'''
-    DELETE FROM songs
-    WHERE {chosen_attr} = :new_value
-    '''
-    dictionary = {"new_value": new_value}
-    db_ops.update_records(query, dictionary)
         
 def main():
     # main program
@@ -371,7 +430,9 @@ def main():
         elif user_choice == 6:
             delete_incomplete_records()
         elif user_choice == 7:
-            delete_by_bulk()
+            modify_in_bulk()
+        elif user_choice == 8:
+            view_by_threshold()
         elif user_choice == 0:
             print("Goodbye!")
             break

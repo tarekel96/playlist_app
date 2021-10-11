@@ -1,5 +1,6 @@
 import os
 from datetime import date
+from typing import Iterable
 
 # module contains miscellaneous functions
 
@@ -90,7 +91,6 @@ class helper():
         print("Results..")
         for i in lst:
             print(i)
-        print("")
 
     # function prints a list of strings nicely with the attributes
     @staticmethod
@@ -156,4 +156,48 @@ class helper():
             isValid = True
         return value
 
+    @staticmethod
+    def get_float(unsigned=False, bounded=False, bounds=(0,1)):
+        min_bound = None
+        max_bound = None
+        res = None
+        if bounded != False:
+            min_bound = bounds[0]
+            max_bound = bounds[1]
+        msg = "Enter a float value: "
+        isValid = False
+        if unsigned:
+            msg = "Enter a positive float value: "            
+        while isValid == False:
+            res = input(msg)
+            try:
+                float(res)
+                if unsigned == True and float(res) < 0:
+                    print(f"Error: Invalid input, expected a positive value.")
+                    continue
+                if bounded != False:
+                    if float(res) > max_bound:
+                        print(f"Error: Value exceeds max boundary of {max_bound}.")
+                        continue
+                    if float(res) < min_bound:
+                        print(f"Error: Value is below min boundary of {min_bound}.")
+                        continue
+            except TypeError as e:
+                print(f"Error: Invalid type, expected a float value.\n{e}")
+                continue
+            isValid = True
+        return res
+
+    @staticmethod 
+    def write_songs_to_file(filename, songs_list):
+        inFile = open(filename, "w")
+        for song in songs_list:
+            for index, attr in enumerate(song):
+                if index != len(song) - 1:
+                    inFile.write(str(attr) + ",")
+                else:
+                    inFile.write(str(attr) + "\n")
+        inFile.close()
+
+    
 

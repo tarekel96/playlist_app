@@ -70,6 +70,11 @@ class db_operations():
         self.cursor.execute(query, dictionary)
         return self.cursor.fetchall()[0]
     
+        # function to return all rows based on the options from the dictionary
+    def get_records_options(self, query, dictionary):
+        self.cursor.execute(query, dictionary)
+        return self.cursor.fetchall()
+    
     def get_record_col_names(self, query, dictionary={}):
         self.cursor.execute(query, dictionary)
         # Get col names from description tuples
