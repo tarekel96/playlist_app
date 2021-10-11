@@ -13,7 +13,7 @@ class db_operations():
                 print("Connection made..")
                 self.isConnected = True
             except OperationalError as e:
-                print(f"Error: Unable to connect to {conn_path}. \nPlease re-renter the DB path, include the db file in the path. ")
+                print(f"Error: Unable to connect to {conn_path}.\nPlease re-renter the DB path, include the db file in the path. ")
                 conn_path = input("Path: ")
                 continue
         self.table_exists(table_name="songs", create_table=True)
